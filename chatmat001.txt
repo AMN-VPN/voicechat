@@ -1,695 +1,402 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="fa">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>چت صوتی گروهی</title>
+    <title>شبکه اجتماعی پیام صوتی</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
     <style>
         body {
-            font-family: system-ui, -apple-system, sans-serif;
-            margin: 0;
+            font-family: system-ui;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: #f0f2f5;
-            direction: rtl;
+            background: #f0f2f5;
         }
         .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .card {
             background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .room-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .btn {
-            padding: 12px 20px;
-            border: none;
             border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            flex: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .btn:active {
-            transform: scale(0.98);
-        }
-        .btn-primary {
-            background-color: #2196f3;
+        button {
+            background: #1877f2;
             color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
         }
-        .btn:hover {
-            opacity: 0.9;
+        button:disabled {
+            background: #cccccc;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            margin: 5px;
+            width: 200px;
         }
         .room-info {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            display: none;
-        }
-        .room-code {
-            font-size: 24px;
-            font-weight: bold;
-            color: #1976d2;
-            margin: 10px 0;
-            letter-spacing: 2px;
-            font-family: monospace;
-        }
-        .input-box {
-            margin-bottom: 15px;
-        }
-        .room-input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            text-align: center;
-            margin-bottom: 10px;
-            font-family: monospace;
-            direction: ltr;
-        }
-        .participants {
             margin: 20px 0;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        .participant {
-            display: flex;
-            align-items: center;
-            padding: 8px;
-            background: white;
-            border-radius: 5px;
-            margin-bottom: 5px;
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-left: 8px;
-        }
-        .status-online {
-            background-color: #4caf50;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 6px;
         }
         .messages {
-            max-height: 500px;
+            height: 400px;
             overflow-y: auto;
             padding: 10px;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .audio-message {
-            display: flex;
-            flex-direction: column;
             background: #f8f9fa;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
         }
-        .message-header {
+        .message {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .sender-name {
-            font-weight: bold;
-            color: #1976d2;
+        .message.sent {
+            background: #e3f2fd;
+            margin-left: 20%;
         }
-        .message-time {
-            color: #666;
+        .message.received {
+            background: white;
+            margin-right: 20%;
         }
-        .audio-player {
-            width: 100%;
+        .record-button {
+            background: #dc3545;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px;
         }
-        .record-btn {
-            background-color: #4caf50;
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .record-btn.recording {
-            background-color: #f44336;
+        .record-button.recording {
             animation: pulse 1.5s infinite;
-        }
-        .recording-time {
-            text-align: center;
-            color: #f44336;
-            margin-top: 5px;
-            font-size: 14px;
-            height: 20px;
-        }
-        .status-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-            backdrop-filter: blur(5px);
-        }
-        .debug-panel {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            max-width: 300px;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
         }
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(0.98); }
+            50% { transform: scale(1.1); }
             100% { transform: scale(1); }
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .timer {
+            margin: 0 10px;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
-    <div class="debug-panel" id="debugPanel"></div>
-    
     <div class="container">
-        <div class="card">
-            <div class="room-controls">
-                <button class="btn btn-primary" id="createRoomBtn">ساخت اتاق جدید</button>
-                <button class="btn btn-primary" id="joinRoomBtn">ورود به اتاق</button>
-            </div>
-
-            <div class="room-info" id="roomInfo">
-                <div>کد اتاق:</div>
-                <div class="room-code" id="roomCode"></div>
-                <button class="btn btn-primary" id="copyRoomCode">کپی کد اتاق</button>
-            </div>
-
-            <div class="input-box" id="joinBox" style="display: none;">
-                <input type="text" class="room-input" id="roomInput" 
-                       placeholder="کد اتاق را وارد کنید" maxlength="6">
-                <button class="btn btn-primary" id="joinSubmitBtn">ورود</button>
-            </div>
-
-            <div class="participants" id="participants" style="display: none;">
-                <h3>افراد حاضر در اتاق</h3>
-                <div id="participantsList"></div>
-            </div>
-
-            <div id="recordingControls" style="display: none;">
-                <button class="btn record-btn" id="recordBtn">شروع ضبط</button>
-                <div class="recording-time" id="recordingTime"></div>
-            </div>
+        <h1>شبکه اجتماعی پیام صوتی</h1>
+        
+        <div id="join-section">
+            <input type="text" id="room-code" placeholder="کد اتاق را وارد کنید">
+            <button onclick="joinRoom()">ورود به اتاق</button>
+            <button onclick="createRoom()">ایجاد اتاق جدید</button>
         </div>
 
-        <div class="messages" id="messages" style="display: none;">
-            <!-- پیام‌های صوتی اینجا قرار می‌گیرند -->
+        <div id="room-section" style="display: none;">
+            <div class="room-info">
+                <h2>اتاق گفتگو</h2>
+                <p>کد اتاق: <span id="current-room-code"></span></p>
+            </div>
+
+            <div class="messages" id="messages-container"></div>
+
+            <div class="controls">
+                <button id="record-btn" class="record-button" onclick="toggleRecording()">
+                    🎤
+                </button>
+                <span class="timer" id="timer">00:00</span>
+                <button id="send-btn" style="display: none;" onclick="sendRecording()">ارسال</button>
+                <button id="cancel-btn" style="display: none;" onclick="cancelRecording()">لغو</button>
+            </div>
+
+            <button onclick="leaveRoom()" style="margin-top: 10px;">خروج از اتاق</button>
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">
-        در حال آماده‌سازی...
-    </div>
+    <script>
+        let peer;
+        let currentRoom;
+        let connections = {};
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingStartTime;
+        let timerInterval;
+        let isRecording = false;
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
-<script>
-// تست پشتیبانی از indexedDB
-if (!window.indexedDB) {
-    console.error("مرورگر شما از IndexedDB پشتیبانی نمی‌کند!");
-    alert("مرورگر شما از ذخیره‌سازی پشتیبانی نمی‌کند. پیام‌ها ذخیره نخواهند شد.");
-}
+        // IndexedDB setup
+        const dbName = "voiceMessageDB";
+        const dbVersion = 1;
+        let db;
 
-// تست پشتیبانی از MediaRecorder
-if (!navigator.mediaDevices || !window.MediaRecorder) {
-    alert("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند. لطفاً از مرورگر دیگری استفاده کنید.");
-}
-
-class VoiceChatRoom {
-    constructor() {
-        // متغیرهای اصلی
-        this.peer = null;
-        this.roomCode = null;
-        this.connections = new Map();
-        this.mediaRecorder = null;
-        this.audioChunks = [];
-        this.recordingInterval = null;
-        this.recordingStartTime = null;
-        this.db = null;
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const request = indexedDB.open(dbName, dbVersion);
         
-        // مقدار دهی اولیه
-        this.initializeElements();
-        this.setupEventListeners();
-        this.initializeDatabase();
-
-        // بررسی دسترسی‌ها
-        this.checkPermissions();
-    }
-
-    async checkPermissions() {
-        try {
-            const result = await navigator.permissions.query({ name: 'microphone' });
-            if (result.state === 'denied') {
-                this.log('دسترسی به میکروفون مسدود شده است', 'error');
-                this.showPermissionInstructions();
-            }
-        } catch (error) {
-            this.log('خطا در بررسی دسترسی‌ها', 'error');
-        }
-    }
-
-    showPermissionInstructions() {
-        const instructions = this.isMobile ? 
-            'لطفاً دسترسی میکروفون را در تنظیمات گوشی خود فعال کنید.' :
-            'لطفاً روی آیکون قفل در نوار آدرس کلیک کرده و دسترسی میکروفون را فعال کنید.';
-        
-        alert(instructions);
-    }
-
-    log(message, type = 'info') {
-        const debugPanel = document.getElementById('debugPanel');
-        if (debugPanel && !this.isMobile) {
-            const time = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            logEntry.style.color = type === 'error' ? '#ff4444' : '#ffffff';
-            logEntry.textContent = `${time}: ${message}`;
-            debugPanel.insertBefore(logEntry, debugPanel.firstChild);
-            debugPanel.style.display = 'block';
-        }
-        console[type](message);
-    }
-
-    initializeElements() {
-        this.elements = {
-            createRoomBtn: document.getElementById('createRoomBtn'),
-            joinRoomBtn: document.getElementById('joinRoomBtn'),
-            roomInfo: document.getElementById('roomInfo'),
-            roomCode: document.getElementById('roomCode'),
-            copyRoomCode: document.getElementById('copyRoomCode'),
-            joinBox: document.getElementById('joinBox'),
-            roomInput: document.getElementById('roomInput'),
-            joinSubmitBtn: document.getElementById('joinSubmitBtn'),
-            participants: document.getElementById('participants'),
-            participantsList: document.getElementById('participantsList'),
-            recordingControls: document.getElementById('recordingControls'),
-            recordBtn: document.getElementById('recordBtn'),
-            recordingTime: document.getElementById('recordingTime'),
-            messages: document.getElementById('messages'),
-            statusBar: document.getElementById('statusBar')
+        request.onerror = (event) => {
+            console.error("IndexedDB error:", event.target.error);
         };
 
-        if (this.isMobile) {
-            document.querySelectorAll('.btn').forEach(btn => {
-                btn.style.webkitTapHighlightColor = 'transparent';
+        request.onsuccess = (event) => {
+            db = event.target.result;
+        };
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('messages')) {
+                const store = db.createObjectStore('messages', { keyPath: 'id', autoIncrement: true });
+                store.createIndex('roomCode', 'roomCode', { unique: false });
+                store.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+        };
+
+        // Generate room code
+        function generateRoomCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        // Create new room
+        async function createRoom() {
+            const roomCode = generateRoomCode();
+            initializePeer(roomCode);
+            showRoom(roomCode);
+        }
+
+        // Join existing room
+        async function joinRoom() {
+            const roomCode = document.getElementById('room-code').value;
+            if (roomCode.length !== 6) {
+                alert('لطفا کد ۶ رقمی معتبر وارد کنید');
+                return;
+            }
+            initializePeer(roomCode);
+            showRoom(roomCode);
+        }
+
+        // Initialize PeerJS
+        function initializePeer(roomCode) {
+            peer = new Peer(`${roomCode}-${Date.now()}`);
+            
+            peer.on('open', () => {
+                currentRoom = roomCode;
+                loadMessages(roomCode);
+            });
+
+            peer.on('connection', (conn) => {
+                setupConnection(conn);
             });
         }
 
-        this.log('المان‌های HTML مقداردهی شدند');
-    }
-
-    setupEventListeners() {
-        this.elements.createRoomBtn.addEventListener('click', () => this.createRoom());
-        this.elements.joinRoomBtn.addEventListener('click', () => this.showJoinBox());
-        this.elements.copyRoomCode.addEventListener('click', () => this.copyRoomCode());
-        this.elements.joinSubmitBtn.addEventListener('click', () => this.joinRoom());
-        this.elements.recordBtn.addEventListener('click', () => this.toggleRecording());
-        this.elements.roomInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.joinRoom();
-        });
-
-        if (this.isMobile) {
-            this.elements.recordBtn.addEventListener('touchstart', (e) => e.preventDefault());
-        }
-
-        this.log('رویدادها تنظیم شدند');
-    }
-
-    updateStatus(message) {
-        this.elements.statusBar.textContent = message;
-        this.log(message);
-    }
-
-    async initializeDatabase() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('voiceChatDB', 1);
-
-            request.onerror = (event) => {
-                this.log('خطا در باز کردن دیتابیس: ' + event.target.error, 'error');
-                reject(event.target.error);
-            };
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('messages')) {
-                    const store = db.createObjectStore('messages', {
-                        keyPath: ['roomCode', 'timestamp']
+        function setupConnection(conn) {
+            connections[conn.peer] = conn;
+            
+            conn.on('data', async (data) => {
+                if (data.type === 'voice') {
+                    // Convert array buffer to blob
+                    const audioBlob = new Blob([data.audio], { type: 'audio/webm' });
+                    await saveMessage({
+                        roomCode: currentRoom,
+                        sender: conn.peer,
+                        timestamp: new Date(),
+                        audio: audioBlob
                     });
-                    store.createIndex('roomCode', 'roomCode');
-                    store.createIndex('timestamp', 'timestamp');
+                    displayMessage(audioBlob, false);
                 }
-            };
+            });
 
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                this.log('دیتابیس با موفقیت باز شد');
-                resolve(this.db);
-            };
-        });
-    }
-    async createRoom() {
-        try {
-            this.roomCode = this.generateRoomCode();
-            this.log(`ایجاد اتاق با کد ${this.roomCode}`);
-            
-            await this.initializePeer(this.roomCode);
-            
-            this.elements.roomCode.textContent = this.roomCode;
-            this.elements.roomInfo.style.display = 'block';
-            this.elements.participants.style.display = 'block';
-            this.elements.recordingControls.style.display = 'block';
-            this.elements.messages.style.display = 'block';
-            this.elements.createRoomBtn.style.display = 'none';
-            this.elements.joinRoomBtn.style.display = 'none';
-            
-            await this.loadStoredMessages();
-            this.updateStatus('اتاق ایجاد شد');
-        } catch (error) {
-            this.log('خطا در ایجاد اتاق: ' + error, 'error');
-            alert('خطا در ایجاد اتاق. لطفاً دوباره تلاش کنید.');
+            conn.on('close', () => {
+                delete connections[conn.peer];
+            });
         }
-    }
 
-    generateRoomCode() {
-        return Math.random().toString(36).substr(2, 6).toUpperCase();
-    }
+        // Connect to all peers in room
+        function connectToPeers() {
+            Object.keys(connections).forEach(peerId => {
+                if (!connections[peerId]) {
+                    const conn = peer.connect(peerId);
+                    setupConnection(conn);
+                }
+            });
+        }
 
-    showJoinBox() {
-        this.elements.joinBox.style.display = 'block';
-        this.elements.createRoomBtn.disabled = true;
-    }
+        // Recording functions
+        async function toggleRecording() {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    startRecording(stream);
+                } catch (err) {
+                    console.error('Error accessing microphone:', err);
+                    alert('دسترسی به میکروفون امکان‌پذیر نیست');
+                }
+            } else {
+                stopRecording();
+            }
+        }
 
-    copyRoomCode() {
-        const code = this.elements.roomCode.textContent;
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(code)
-                .then(() => this.updateStatus('کد اتاق کپی شد'))
-                .catch(err => {
-                    this.log('خطا در کپی کد: ' + err, 'error');
-                    this.fallbackCopy(code);
+        function startRecording(stream) {
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            isRecording = true;
+            recordingStartTime = Date.now();
+            
+            document.getElementById('record-btn').classList.add('recording');
+            document.getElementById('send-btn').style.display = 'none';
+            document.getElementById('cancel-btn').style.display = 'inline';
+            
+            startTimer();
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                stopTimer();
+                
+                document.getElementById('record-btn').classList.remove('recording');
+                document.getElementById('send-btn').style.display = 'inline';
+                document.getElementById('cancel-btn').style.display = 'inline';
+            }
+        }
+
+        function cancelRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            audioChunks = [];
+            stopTimer();
+            
+            document.getElementById('record-btn').classList.remove('recording');
+            document.getElementById('send-btn').style.display = 'none';
+            document.getElementById('cancel-btn').style.display = 'none';
+            document.getElementById('timer').textContent = '00:00';
+        }
+
+        async function sendRecording() {
+            if (audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                
+                // Save to IndexedDB
+                await saveMessage({
+                    roomCode: currentRoom,
+                    sender: peer.id,
+                    timestamp: new Date(),
+                    audio: audioBlob
                 });
-        } else {
-            this.fallbackCopy(code);
-        }
-    }
 
-    fallbackCopy(text) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            this.updateStatus('کد اتاق کپی شد');
-        } catch (err) {
-            this.log('خطا در کپی کد: ' + err, 'error');
-            alert('لطفاً کد را به صورت دستی کپی کنید');
-        }
-        document.body.removeChild(textArea);
-    }
+                // Display in UI
+                displayMessage(audioBlob, true);
 
-    async joinRoom() {
-        const code = this.elements.roomInput.value.trim().toUpperCase();
-        if (code && code.length === 6) {
-            try {
-                this.log(`تلاش برای پیوستن به اتاق ${code}`);
-                await this.initializePeer();
-                this.connectToRoom(code);
-                this.roomCode = code;
-                
-                this.elements.participants.style.display = 'block';
-                this.elements.recordingControls.style.display = 'block';
-                this.elements.messages.style.display = 'block';
-                this.elements.joinBox.style.display = 'none';
-                this.elements.createRoomBtn.style.display = 'none';
-                this.elements.joinRoomBtn.style.display = 'none';
-                
-                await this.loadStoredMessages();
-                this.updateStatus('به اتاق پیوستید');
-            } catch (error) {
-                this.log('خطا در پیوستن به اتاق: ' + error, 'error');
-                alert('خطا در پیوستن به اتاق. لطفاً کد را بررسی کرده و دوباره تلاش کنید.');
-            }
-        }
-    }
-
-    async initializePeer(peerId = null) {
-        return new Promise((resolve, reject) => {
-            const config = {
-                debug: 0,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
-            };
-
-            if (peerId) config.id = peerId;
-
-            this.peer = new Peer(config);
-
-            this.peer.on('open', (id) => {
-                this.log(`Peer با شناسه ${id} ایجاد شد`);
-                this.setupPeerEvents();
-                resolve(id);
-            });
-
-            this.peer.on('error', (error) => {
-                this.log('خطای Peer: ' + error, 'error');
-                reject(error);
-            });
-        });
-    }
-
-    setupPeerEvents() {
-        this.peer.on('connection', this.handleConnection.bind(this));
-    }
-
-    connectToRoom(roomCode) {
-        const conn = this.peer.connect(roomCode);
-        this.handleConnection(conn);
-    }
-
-    handleConnection(conn) {
-        this.connections.set(conn.peer, conn);
-        
-        conn.on('data', async (data) => {
-            if (data.type === 'voice') {
-                this.log(`دریافت پیام صوتی از ${conn.peer}`);
-                await this.addVoiceMessage(data.audio, data.sender, data.timestamp);
-                await this.storeMessage(data.audio, data.sender, data.timestamp);
-            }
-        });
-
-        conn.on('close', () => {
-            this.log(`اتصال ${conn.peer} قطع شد`);
-            this.connections.delete(conn.peer);
-            this.updateParticipantsList();
-        });
-
-        this.updateParticipantsList();
-    }
-
-    updateParticipantsList() {
-        this.elements.participantsList.innerHTML = '';
-        this.connections.forEach((conn, peerId) => {
-            const div = document.createElement('div');
-            div.className = 'participant';
-            div.innerHTML = `
-                <span class="status-dot status-online"></span>
-                <span>کاربر ${peerId}</span>
-            `;
-            this.elements.participantsList.appendChild(div);
-        });
-    }
-    async toggleRecording() {
-        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
-            await this.startRecording();
-        } else {
-            this.mediaRecorder.stop();
-            this.elements.recordBtn.textContent = 'شروع ضبط';
-            this.elements.recordBtn.classList.remove('recording');
-        }
-    }
-
-    async startRecording() {
-        try {
-            const constraints = {
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                }
-            };
-
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            this.log('دسترسی به میکروفون دریافت شد');
-            
-            this.mediaRecorder = new MediaRecorder(stream);
-            this.audioChunks = [];
-
-            this.mediaRecorder.addEventListener('dataavailable', event => {
-                this.audioChunks.push(event.data);
-            });
-
-            this.mediaRecorder.addEventListener('stop', async () => {
-                await this.handleRecordingComplete(stream);
-            });
-
-            this.mediaRecorder.start();
-            this.startRecordingTimer();
-            this.elements.recordBtn.textContent = 'پایان ضبط';
-            this.elements.recordBtn.classList.add('recording');
-            
-        } catch (error) {
-            this.handleRecordingError(error);
-        }
-    }
-
-    startRecordingTimer() {
-        this.recordingStartTime = Date.now();
-        this.recordingInterval = setInterval(() => {
-            const duration = Date.now() - this.recordingStartTime;
-            const seconds = Math.floor(duration / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            this.elements.recordingTime.textContent = 
-                `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-        }, 1000);
-    }
-
-    async handleRecordingComplete(stream) {
-        try {
-            const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-            const arrayBuffer = await audioBlob.arrayBuffer();
-            const timestamp = new Date().toISOString();
-
-            this.connections.forEach(conn => {
-                if (conn.open) {
+                // Send to all peers
+                Object.values(connections).forEach(conn => {
                     conn.send({
                         type: 'voice',
-                        audio: arrayBuffer,
-                        sender: this.peer.id,
-                        timestamp
+                        audio: audioBlob
                     });
-                }
-            });
+                });
 
-            await this.addVoiceMessage(arrayBuffer, 'شما', timestamp);
-            await this.storeMessage(arrayBuffer, 'شما', timestamp);
-
-        } catch (error) {
-            this.log('خطا در پردازش صدا: ' + error, 'error');
-        } finally {
-            clearInterval(this.recordingInterval);
-            this.elements.recordingTime.textContent = '';
-            stream.getTracks().forEach(track => track.stop());
+                // Reset recording state
+                cancelRecording();
+            }
         }
-    }
 
-    handleRecordingError(error) {
-        this.log('خطا در دسترسی به میکروفون: ' + error, 'error');
-        if (error.name === 'NotAllowedError') {
-            this.showPermissionInstructions();
-        } else {
-            alert('خطا در دسترسی به میکروفون. لطفاً از مرورگر دیگری استفاده کنید.');
+        // Timer functions
+        function startTimer() {
+            let seconds = 0;
+            timerInterval = setInterval(() => {
+                seconds++;
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                document.getElementById('timer').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }, 1000);
         }
-    }
 
-    async addVoiceMessage(audioData, sender, timestamp) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'audio-message';
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        }
 
-        const blob = new Blob([audioData], { type: 'audio/webm' });
-        const url = URL.createObjectURL(blob);
-        const date = new Date(timestamp);
-        
-        messageDiv.innerHTML = `
-            <div class="message-header">
-                <span class="sender-name">${sender}</span>
-                <span class="message-time">${date.toLocaleTimeString()}</span>
-            </div>
-            <audio controls class="audio-player">
-                <source src="${url}" type="audio/webm">
-            </audio>
-        `;
-
-        this.elements.messages.appendChild(messageDiv);
-        this.elements.messages.scrollTop = this.elements.messages.scrollHeight;
-    }
-
-    async storeMessage(audioData, sender, timestamp) {
-        if (!this.db) return;
-
-        try {
-            const transaction = this.db.transaction(['messages'], 'readwrite');
+        // Message handling
+        async function saveMessage(message) {
+            const transaction = db.transaction(['messages'], 'readwrite');
             const store = transaction.objectStore('messages');
-            
-            await store.add({
-                roomCode: this.roomCode,
-                sender: sender,
-                audio: audioData,
-                timestamp: timestamp
-            });
-            
-            this.log(`پیام صوتی ذخیره شد (${sender})`);
-        } catch (error) {
-            this.log('خطا در ذخیره پیام: ' + error, 'error');
+            await store.add(message);
         }
-    }
 
-    async loadStoredMessages() {
-        if (!this.db) return;
-
-        try {
-            const transaction = this.db.transaction(['messages'], 'readonly');
+        async function loadMessages(roomCode) {
+            const transaction = db.transaction(['messages'], 'readonly');
             const store = transaction.objectStore('messages');
             const index = store.index('roomCode');
+            const messages = await index.getAll(IDBKeyRange.only(roomCode));
             
-            const messages = await new Promise((resolve, reject) => {
-                const request = index.getAll(IDBKeyRange.only(this.roomCode));
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-
-            messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            
-            for (const message of messages) {
-                await this.addVoiceMessage(message.audio, message.sender, message.timestamp);
-            }
-
-            this.log(`${messages.length} پیام از حافظه بازیابی شد`);
-        } catch (error) {
-            this.log('خطا در بازیابی پیام‌ها: ' + error, 'error');
+            messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                .forEach(message => {
+                    displayMessage(message.audio, message.sender === peer.id);
+                });
         }
-    }
-}
 
-// راه‌اندازی برنامه
-const voiceChat = new VoiceChatRoom();
-</script>
+        function displayMessage(audioBlob, isSent) {
+            const messagesContainer = document.getElementById('messages-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+            
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = URL.createObjectURL(audioBlob);
+            
+            messageDiv.appendChild(audio);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // UI functions
+        function showRoom(roomCode) {
+            document.getElementById('join-section').style.display = 'none';
+            document.getElementById('room-section').style.display = 'block';
+            document.getElementById('current-room-code').textContent = roomCode;
+        }
+
+        function leaveRoom() {
+            if (peer) {
+                Object.values(connections).forEach(conn => conn.close());
+                peer.destroy();
+            }
+            cancelRecording();
+            document.getElementById('room-section').style.display = 'none';
+            document.getElementById('join-section').style.display = 'block';
+            document.getElementById('messages-container').innerHTML = '';
+        }
+    </script>
 </body>
 </html>
